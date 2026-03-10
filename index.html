@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daraz Bill - Utility Bill Payment</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.daraz-bg {
+  background: linear-gradient(135deg, #f57224 0%, #c5521e 100%);
+}
+.success-overlay, .payment-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.success-card, .payment-card { animation: fadeIn .3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px);} to { opacity: 1; transform: translateY(0);} }
+.checkmark {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  display: block; stroke-width: 5;
+  stroke: #fff; stroke-miterlimit: 10;
+  margin: 0 auto;
+  box-shadow: 0 0 0 rgba(52, 211, 153, 0.4);
+  animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+}
+.checkmark__circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 5; stroke-miterlimit: 10;
+  stroke: #10B981; fill: none;
+  animation: stroke .6s cubic-bezier(0.65,0,0.45,1) forwards;
+}
+.checkmark__check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48; stroke-dashoffset: 48;
+  animation: stroke .3s cubic-bezier(0.65,0,0.45,1) .8s forwards;
+}
+@keyframes stroke { 100%{ stroke-dashoffset:0; } }
+@keyframes scale { 0%,100%{transform:none;} 50%{transform:scale3d(1.1,1.1,1);} }
+@keyframes fill { 100%{box-shadow: inset 0 0 0 1000px #10B981;} }
+</style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Success Overlay -->
+<div id="successOverlay" class="success-overlay flex">
+  <div class="success-card bg-white p-8 rounded-xl max-w-md w-full mx-4">
+    <div class="text-center">
+      <img src="https://discover.daraz.com/images/Group_1083-1644460875.svg" class="h-10 mx-auto mb-4" alt="Daraz Logo">
+      <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+        <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+      </svg>
+      <h2 class="text-2xl font-bold text-gray-800 mt-6 mb-2">Payment Successful!</h2>
+      <p class="text-gray-600 mb-6">Your bill payment has been processed successfully.</p>
+
+      <div class="bg-gray-50 p-4 rounded-lg mb-6 text-left">
+        <div class="flex justify-between mb-2">
+          <span class="text-gray-500">Amount Paid:</span>
+          <span class="font-medium" id="successAmount"></span>
+        </div>
+        <div class="flex justify-between mb-2">
+          <span class="text-gray-500">Company:</span>
+          <span class="font-medium" id="successCompany"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Reference No:</span>
+          <span class="font-medium" id="successRef"></span>
+        </div>
+      </div>
+
+      <button onclick="closeSuccess()" class="daraz-bg text-white w-full py-3 rounded-lg font-semibold hover:opacity-90 transition duration-200">
+        Back to Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="daraz-bg text-white py-6 shadow-lg">
+  <div class="container mx-auto px-4 flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <img src="https://discover.daraz.com/images/Group_1083-1644460875.svg" alt="Daraz Logo" class="h-10">
+      <h1 class="text-2xl font-bold">Daraz Bill</h1>
+    </div>
+    <nav class="hidden md:flex space-x-8">
+      <a href="#" class="hover:text-orange-200">Home</a>
+      <a href="#" class="hover:text-orange-200">Pay Bills</a>
+      <a href="#" class="hover:text-orange-200">History</a>
+      <a href="#" class="hover:text-orange-200">Contact</a>
+      <a href="https://wa.me/+923314712909" target="_blank" class="hover:text-orange-200">Contact via WhatsApp</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="container mx-auto px-4 py-12">
+  <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="p-8">
+      <h2 class="text-3xl font-bold text-gray-800 mb-6">Utility Bill Payment</h2>
+
+      <!-- Tabs -->
+      <div class="flex space-x-4 mb-8">
+        <button onclick="showForm('electricity')" id="tab-electricity"
+          class="flex-1 py-3 rounded-lg font-semibold daraz-bg text-white">⚡ Electricity Bill</button>
+        <button onclick="showForm('gas')" id="tab-gas"
+          class="flex-1 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700">🔥 Gas Bill</button>
+      </div>
+
+      <!-- Electricity Form -->
+      <div id="form-electricity">
+        <div class="space-y-6">
+          <div>
+            <label for="refElec" class="block text-sm font-medium text-gray-700 mb-2">
+              Enter Bill Ref No / Consumer Number
+            </label>
+            <input type="text" id="refElec" placeholder="Enter bill reference number or consumer number" 
+              class="w-full px-4 py-3 rounded-lg border border-gray-300">
+          </div>
+          <div>
+            <label for="providerElec" class="block text-sm font-medium text-gray-700 mb-2">Select Electricity Provider</label>
+            <select id="providerElec" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500">
+              <option value="">Select your electricity company</option>
+              <option value="k-electric">K-Electric (Karachi)</option>
+              <option value="lesco">LESCO (Lahore)</option>
+              <option value="iesco">IESCO (Islamabad)</option>
+              <option value="fesco">FESCO (Faisalabad)</option>
+              <option value="mepco">MEPCO (Multan)</option>
+              <option value="pesco">PESCO (Peshawar)</option>
+              <option value="qesco">QESCO (Quetta)</option>
+              <option value="hesco">HESCO (Hyderabad)</option>
+               <option value="GEPCO">GEPCO (GUJRANWALA)</option>
+            </select>
+          </div>
+          <div class="flex space-x-4">
+            <div class="flex-1">
+              <label for="monthElec" class="block text-sm font-medium text-gray-700 mb-2">Billing Month</label>
+              <select id="monthElec" class="w-full px-4 py-3 rounded-lg border border-gray-300">
+                <option value="">Select month</option>
+                <option>January</option><option>February</option><option>March</option>
+                <option>April</option><option>May</option><option>June</option>
+                <option>July</option><option>August</option><option>September</option>
+                <option>October</option><option>November</option><option>December</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label for="yearElec" class="block text-sm font-medium text-gray-700 mb-2">Billing Year</label>
+              <select id="yearElec" class="w-full px-4 py-3 rounded-lg border border-gray-300"></select>
+            </div>
+          </div>
+          <div>
+            <label for="amountElec" class="block text-sm font-medium text-gray-700 mb-2">Amount (PKR)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3">Rs.</span>
+              <input type="number" id="amountElec" placeholder="0.00" class="w-full pl-8 px-4 py-3 rounded-lg border border-gray-300">
+            </div>
+          </div>
+          <div class="pt-4">
+            <button onclick="processPayment('electricity')" class="daraz-bg text-white w-full py-4 rounded-lg font-semibold text-lg hover:opacity-90">Proceed to Payment</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gas Form -->
+      <div id="form-gas" class="hidden">
+        <div class="space-y-6">
+          <div>
+            <label for="refGas" class="block text-sm font-medium text-gray-700 mb-2">
+              Enter Bill Ref No / Consumer Number
+            </label>
+            <input type="text" id="refGas" placeholder="Enter bill reference number or consumer number" 
+              class="w-full px-4 py-3 rounded-lg border border-gray-300">
+          </div>
+          <div>
+            <label for="providerGas" class="block text-sm font-medium text-gray-700 mb-2">Select Gas Provider</label>
+            <select id="providerGas" class="w-full px-4 py-3 rounded-lg border border-gray-300">
+              <option value="">Select your gas company</option>
+              <option value="sngpl">SNGPL</option>
+              <option value="ssgc">SSGC</option>
+            </select>
+          </div>
+          <div>
+            <label for="amountGas" class="block text-sm font-medium text-gray-700 mb-2">Amount (PKR)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3">Rs.</span>
+              <input type="number" id="amountGas" placeholder="0.00" class="w-full pl-8 px-4 py-3 rounded-lg border border-gray-300">
+            </div>
+          </div>
+          <div class="pt-4">
+            <button onclick="processPayment('gas')" class="daraz-bg text-white w-full py-4 rounded-lg font-semibold text-lg hover:opacity-90">Proceed to Payment</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="bg-gray-800 text-white py-12 mt-12">
+  <div class="container mx-auto px-4 text-center text-gray-400">
+    © 2025 Daraz Bill. All rights reserved.
+  </div>
+</footer>
+
+<script>
+// Tabs
+function showForm(type){
+  document.getElementById("form-electricity").classList.add("hidden");
+  document.getElementById("form-gas").classList.add("hidden");
+  document.getElementById("tab-electricity").classList.remove("daraz-bg","text-white");
+  document.getElementById("tab-electricity").classList.add("bg-gray-200","text-gray-700");
+  document.getElementById("tab-gas").classList.remove("daraz-bg","text-white");
+  document.getElementById("tab-gas").classList.add("bg-gray-200","text-gray-700");
+
+  if(type==="electricity"){
+    document.getElementById("form-electricity").classList.remove("hidden");
+    document.getElementById("tab-electricity").classList.add("daraz-bg","text-white");
+  }else{
+    document.getElementById("form-gas").classList.remove("hidden");
+    document.getElementById("tab-gas").classList.add("daraz-bg","text-white");
+  }
+}
+
+// Fill Years
+function fillYears(selectId){
+  const sel=document.getElementById(selectId);
+  const y=new Date().getFullYear();
+  for(let i=y-1;i<=y+2;i++){
+    const opt=document.createElement("option");
+    opt.value=i; opt.text=i; sel.appendChild(opt);
+  }
+}
+fillYears("yearElec");
+
+// Payment Process
+function processPayment(type){
+  let provider, refNo, amount;
+  if(type==="electricity"){
+    provider=document.getElementById("providerElec");
+    refNo=document.getElementById("refElec").value;
+    amount=document.getElementById("amountElec").value;
+    if(!provider.value) return alert("Select electricity provider");
+  } else {
+    provider=document.getElementById("providerGas");
+    refNo=document.getElementById("refGas").value;
+    amount=document.getElementById("amountGas").value;
+    if(!provider.value) return alert("Select gas provider");
+  }
+  if(!refNo) return alert("Enter reference number");
+  if(!amount || parseFloat(amount)<=0) return alert("Enter valid amount");
+
+  document.getElementById("successAmount").textContent="Rs. "+parseFloat(amount).toLocaleString('en-PK',{minimumFractionDigits:2});
+  document.getElementById("successCompany").textContent=provider.options[provider.selectedIndex].text;
+  document.getElementById("successRef").textContent=refNo;
+  document.getElementById("successOverlay").style.display="flex";
+}
+
+function closeSuccess(){ document.getElementById("successOverlay").style.display="none"; }
+</script>
+</body>
+</html>
